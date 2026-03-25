@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+:root {
+  /* Brand */
+  --blue-50:  #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-900: #1e3a8a;
+
+  /* Admin surfaces — navy sidebar + white content */
+  --admin-sidebar:  #0f172a;
+  --admin-sidebar2: #1e293b;
+  --admin-content:  #f8fafc;
+  --admin-card:     #ffffff;
+  --admin-border:   #e2e8f0;
+  --admin-muted:    #f1f5f9;
+
+  /* Severity */
+  --sev-low:      #16a34a;
+  --sev-moderate: #d97706;
+  --sev-high:     #ea580c;
+  --sev-critical: #dc2626;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--admin-content);
+  color: #0f172a;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type="number"] { -moz-appearance: textfield; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--admin-muted); }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--blue-400); }
+
+:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Leaflet overrides for light theme */
+.leaflet-container {
+  border-radius: 0.75rem;
+  font-family: 'DM Sans', sans-serif !important;
+}
+.leaflet-control-zoom a {
+  font-family: 'DM Sans', sans-serif !important;
+  color: #1e293b !important;
+  font-weight: 700 !important;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  from { transform: translateX(-200%); }
+  to   { transform: translateX(400%); }
+}
+.animate-fade-in { animation: fade-in 0.4s ease both; }
