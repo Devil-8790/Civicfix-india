@@ -1,0 +1,29 @@
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+build/
+.pnp.*
+
+# --- Python / FastAPI ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# --- Environment Variables (CRITICAL: Do not upload API keys!) ---
+.env
+.env.local
+.env.*.local
+
+# --- Database & User Uploads ---
+*.sqlite3
+*.db
+backend/uploads/
+uploads/
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db
