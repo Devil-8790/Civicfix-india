@@ -8,6 +8,7 @@ from app.db.models import Ticket, TicketStatus
 from app.schemas.ticket import TicketResponse
 from app.services.ai_triage import analyze_complaint
 
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 router = APIRouter()
 UPLOAD_DIR = "uploads"
 
@@ -57,7 +58,8 @@ async def submit_web_complaint(
     new_ticket = Ticket(
         citizen_contact=citizen_contact, 
         description=description,
-        original_image_url=f"http://localhost:8000/uploads/{image_filename}",         
+        # CHANGE THIS LINE:
+        original_image_url=f"{BASE_URL}/uploads/{image_filename}",         
         location=wkt_point,
         reported_address=reported_address,
         department=ai_result.department,

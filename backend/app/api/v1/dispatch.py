@@ -12,6 +12,7 @@ from app.db.models import Ticket, TicketStatus, FieldWorker, WorkerStatus, Depar
 from app.schemas.ticket import TicketAssign
 from app.core.config import settings
 
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 router = APIRouter()
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -144,7 +145,7 @@ async def resolve_ticket_issue(
     
     # 4. Final Updates to Ticket
     # NOTICE: We use resolution_image_url to match your DB model
-    ticket.resolution_image_url = f"http://localhost:8000/uploads/{filename}" 
+    ticket.resolution_image_url = f"{BASE_URL}/uploads/{filename}"
     ticket.claimed_length_meters = claimed_length_meters
     ticket.claimed_width_meters = claimed_width_meters
     ticket.claimed_depth_meters = claimed_depth_meters

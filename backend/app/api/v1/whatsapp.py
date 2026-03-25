@@ -13,6 +13,7 @@ from app.core.config import settings
 router = APIRouter()
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 def generate_twiml_response(message: str) -> Response:
     """Helper function to format the XML response that Twilio requires."""
@@ -84,7 +85,7 @@ async def whatsapp_incoming(request: Request, db: Session = Depends(get_db)):
         with open(file_path, "wb") as f:
             f.write(media_bytes)
             
-        local_media_url = f"http://localhost:8000/uploads/{filename}"
+        local_media_url = f"{BASE_URL}/uploads/{filename}"
         
     except Exception as e:
         print(f"🚨 Error downloading WhatsApp media: {e}")
