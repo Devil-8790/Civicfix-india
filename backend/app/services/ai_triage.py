@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 # New Google GenAI 1.0.0 Imports
-from google import genai
+from google import genai # type: ignore
 from google.genai import types
 
 from app.db.models import DepartmentQueue
