@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from google import genai
 from google.genai import types
+import base64
+
+
 
 from app.db.database import get_db
 from app.db.models import Ticket, TicketStatus, FieldWorker, WorkerStatus, DepartmentQueue
@@ -77,7 +80,7 @@ def assign_field_worker(
 @router.post("/{ticket_id}/resolve")
 async def resolve_ticket_issue(
     ticket_id: int, 
-    worker_id: str = Form(...), # <-- ADDED: Need to know who did the work
+    worker_id: str = Form(...),
     claimed_length_meters: float = Form(...),
     claimed_width_meters: float = Form(...),
     claimed_depth_meters: float = Form(...),
@@ -88,24 +91,20 @@ async def resolve_ticket_issue(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found.")
 
-    # 1. Save the new "After" Resolution Image
+    # 1. THE EPHEMERAL DISK FIX: Convert new "After" image to Base64
     after_image_bytes = await file.read()
-    file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
-    filename = f"resolved_{ticket_id}_{uuid.uuid4().hex[:8]}.{file_ext}"
-    after_filepath = os.path.join(UPLOAD_DIR, filename)
-    with open(after_filepath, "wb") as f:
-        f.write(after_image_bytes)
+    base64_encoded_after = base64.b64encode(after_image_bytes).decode('utf-8')
+    after_image_data_url = f"data:{file.content_type};base64,{base64_encoded_after}"
 
-    # 2. Retrieve the "Before" Image for comparison
+    # 2. Extract "Before" Image bytes directly from the database Base64 string
     before_image_bytes = None
-    if ticket.original_image_url:
+    if ticket.original_image_url and "base64," in ticket.original_image_url:
         try:
-            original_filename = ticket.original_image_url.split("/")[-1]
-            original_filepath = os.path.join(UPLOAD_DIR, original_filename)
-            with open(original_filepath, "rb") as f:
-                before_image_bytes = f.read()
+            # Split the string at "base64," and decode the actual image data back into bytes
+            base64_str = ticket.original_image_url.split("base64,")[1]
+            before_image_bytes = base64.b64decode(base64_str)
         except Exception as e:
-            print(f"⚠️ Could not load original image: {e}")
+            print(f"⚠️ Could not decode original Base64 image: {e}")
 
     # 3. Setup Gemini Side-by-Side Audit
     gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY) if settings.GEMINI_API_KEY else None
@@ -113,23 +112,23 @@ async def resolve_ticket_issue(
     if gemini_client and before_image_bytes:
         fraud_prompt = f"""
         You are an elite AI municipal auditor for CivicFix India.
-        Image 1 (Before): Original issue ({ticket.core_issue}).
+        Image 1 (Before): Original issue.
         Image 2 (After): Contractor's repair photo.
         Claims: {claimed_length_meters}m x {claimed_width_meters}m x {claimed_depth_meters}m.
         
         Task: 
-        1. Are these the same locations? 
-        2. Is the repair legitimate?
+        1. Are these the same locations? Look closely at surrounding landmarks.
+        2. Is the repair legitimate based on the dimensions claimed?
         
-        Respond strictly in JSON:
-        {{"is_resolved": boolean, "fraud_flag": boolean, "auditor_notes": "string"}}
+        Respond strictly in JSON format:
+        {{"is_resolved": true, "fraud_flag": false, "auditor_notes": "short string explaining why"}}
         """
         
         try:
             parts = [
                 fraud_prompt,
                 types.Part.from_bytes(data=before_image_bytes, mime_type='image/jpeg'),
-                types.Part.from_bytes(data=after_image_bytes, mime_type='image/jpeg')
+                types.Part.from_bytes(data=after_image_bytes, mime_type=file.content_type or 'image/jpeg')
             ]
             response = gemini_client.models.generate_content(
                 model='gemini-2.5-flash',
@@ -139,23 +138,23 @@ async def resolve_ticket_issue(
             audit_result = json.loads(response.text)
         except Exception as e:
             print(f"🚨 Audit failed: {e}")
-            audit_result = {"is_resolved": True, "fraud_flag": False, "auditor_notes": "AI Audit Error"}
+            audit_result = {"is_resolved": True, "fraud_flag": False, "auditor_notes": "AI Audit Error, manual check needed."}
     else:
-        audit_result = {"is_resolved": True, "fraud_flag": False, "auditor_notes": "Manual audit required."}
+        audit_result = {"is_resolved": True, "fraud_flag": False, "auditor_notes": "Manual audit required. Could not load original image."}
     
-    # 4. Final Updates to Ticket
-    # NOTICE: We use resolution_image_url to match your DB model
-    ticket.resolution_image_url = f"{BASE_URL}/uploads/{filename}"
+    # 4. Final Updates to Ticket (Saving the Base64 string, NO LOCAL FILES!)
+    ticket.resolution_image_url = after_image_data_url
     ticket.claimed_length_meters = claimed_length_meters
     ticket.claimed_width_meters = claimed_width_meters
     ticket.claimed_depth_meters = claimed_depth_meters
     
     if audit_result.get("fraud_flag"):
         ticket.status = TicketStatus.OPEN
+        # Add auditor notes to DB if you have a column for it, otherwise you can print/log it
     else:
         ticket.status = TicketStatus.RESOLVED
 
-    # --- NEW: UPDATE THE WORKER STATUS ---
+    # --- UPDATE THE WORKER STATUS ---
     worker = db.query(FieldWorker).filter(FieldWorker.worker_id == worker_id).first()
     if worker:
         if worker.active_jobs > 0:
