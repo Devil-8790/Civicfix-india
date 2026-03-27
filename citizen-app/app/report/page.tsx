@@ -7,10 +7,9 @@ import dynamic from "next/dynamic";
 import {
   MapPin, Camera, Mic, MicOff, UploadCloud, X, AlertCircle,
   Loader2, CheckCircle2, ChevronRight, Navigation2, LocateFixed,
-  WifiOff, FileImage, Zap, ShieldCheck, ArrowLeft,
+  WifiOff, Zap, ShieldCheck, ArrowLeft,
 } from "lucide-react";
 
-// Dynamically import the map to prevent Server-Side Rendering crashes
 const LocationPicker = dynamic(() => import("../../components/LocationPicker"), {
   ssr: false,
   loading: () => <div className="h-[250px] w-full bg-slate-100 animate-pulse rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 text-sm">Loading map...</div>
@@ -19,11 +18,10 @@ const LocationPicker = dynamic(() => import("../../components/LocationPicker"), 
 interface ApiResponse {
   ticket_id?: number; id?: number;
   ai_analysis?: { department?: string; severity_score?: number };
-  analysis?:    { department?: string; severity_score?: number; dept?: string; score?: number };
+  analysis?:     { department?: string; severity_score?: number; dept?: string; score?: number };
   department?: string; severity_score?: number; dept?: string; score?: number;
 }
 
-// Fixed trailing slash issue for the API
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1").replace(/\/$/, "");
 const MAX_MB   = 10;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -85,8 +83,6 @@ export default function ReportPage() {
   const [preview, setPreview]         = useState<string | null>(null);
   const [lat, setLat]                 = useState("");
   const [lng, setLng]                 = useState("");
-  
-  // --- ADDED ADDRESS STATE ---
   const [address, setAddress]         = useState(""); 
   
   const [locState, setLocState]       = useState<LocState>("idle");
@@ -136,7 +132,6 @@ export default function ReportPage() {
     setLocState("success");
   };
 
-  // Upgraded Voice Recognition for Live Typing
   const toggleMic = useCallback(() => {
     const SR = typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
     if (!SR) { setMicState("unsupported"); setTimeout(() => setMicState("idle"), 3000); return; }
@@ -146,7 +141,7 @@ export default function ReportPage() {
     const rec = new SR();
     rec.lang = "en-IN"; 
     rec.continuous = true; 
-    rec.interimResults = true; // Enables live typing
+    rec.interimResults = true; 
 
     let finalTranscript = description ? description + " " : "";
 
@@ -176,8 +171,6 @@ export default function ReportPage() {
     fd.append("description", description.trim());
     fd.append("latitude",  lat || "0");
     fd.append("longitude", lng || "0");
-    
-    // --- ADDED REPORTED ADDRESS TO PAYLOAD ---
     if (address.trim()) fd.append("reported_address", address.trim());
 
     setSubmitting(true);
@@ -205,7 +198,6 @@ export default function ReportPage() {
 
   return (
     <div className={`min-h-screen bg-[#f8fafc] transition-opacity duration-500 ${mounted ? "opacity-100" : "opacity-0"}`}>
-      {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -301,7 +293,6 @@ export default function ReportPage() {
               )}
             </FieldCard>
 
-            {/* INTERACTIVE MAP LOCATION UI */}
             <FieldCard icon={MapPin} title="Location" subtitle="Click map to drop pin or use GPS" done={s3}>
               <button type="button" onClick={grabLoc} disabled={locState === "loading"}
                 className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border text-[13px] font-semibold transition-all duration-200 group mb-4
@@ -326,7 +317,6 @@ export default function ReportPage() {
                 </span>
               </button>
 
-              {/* --- NEW MANUAL ADDRESS INPUT --- */}
               <div className="mb-4">
                 <label className="block text-[10px] font-extrabold tracking-[0.18em] uppercase text-slate-400 mb-1.5">
                   Street Address / Landmark (Optional)
@@ -339,7 +329,6 @@ export default function ReportPage() {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13px] text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                 />
               </div>
-              {/* -------------------------------- */}
 
               <LocationPicker lat={lat} lng={lng} onLocationSelect={handleMapSelect} />
             </FieldCard>
@@ -355,7 +344,7 @@ export default function ReportPage() {
                   rows={6}
                   maxLength={500}
                   required
-                  className="w-full bg-slate-50 p-4 text-[14px] text-slate-800 placeholder-slate-400 resize-none outline-none leading-relaxed font-sans"
+                  className="w-full bg-slate-50 p-4 pr-16 text-[14px] text-slate-800 placeholder-slate-400 resize-none outline-none leading-relaxed font-sans"
                 />
                 <button type="button" onClick={toggleMic}
                   className={`absolute right-3 top-3 w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200
